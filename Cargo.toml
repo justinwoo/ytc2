@@ -1,0 +1,5 @@
+[package]
+name = "ytc2"
+version = "0.1.0"
+authors = ["justinwoo <moomoowoo@gmail.com>"]
+edition = "2018"
