@@ -14,7 +14,11 @@ fn main() {
 
     ensure_sqlite_db();
 
-    let targets = get_targets(page_url);
+    let pick_xsl = env::var_os("PICK_XSL")
+        .map(|x| x.into_string().unwrap())
+        .unwrap_or_else(|| "pick.xsl".to_string());
+
+    let targets = get_targets(page_url, &pick_xsl);
 
     for target in targets {
         download_target(target);
@@ -35,14 +39,14 @@ const ENSURE_SQLITE_DB_QUERY: &str = "
 create table if not exists downloads (link text primary key unique, title text, created datetime);
 ";
 
-fn get_targets(page_url: &str) -> Vec<Target> {
+fn get_targets(page_url: &str, pick_xsl: &str) -> Vec<Target> {
     let output = run_command(&format!(
         r#"
       content=$(curl {}| hxnormalize -x | hxselect '.yt-uix-tile-link') \
       && xml="<results>$content</results>" \
-      && echo $xml | xsltproc pick.xsl -
+      && echo $xml | xsltproc {} -
     "#,
-        page_url
+        page_url, pick_xsl
     ));
 
     let mut targets = Vec::new();
