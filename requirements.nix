@@ -6,5 +6,6 @@
   html-xml-utils
   libxslt
   jq
+  sqlite
   youtube-dl;
 }

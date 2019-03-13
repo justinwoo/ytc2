@@ -21,11 +21,5 @@ in pkgs.runCommand "ytc2" {
 
     wrapProgram $out/bin/ytc2 \
       --prefix PICK_XSL : ${binary.src}/pick.xsl \
-      --prefix PATH : ${pkgs.lib.makeBinPath [
-        requirements.curl
-        requirements.html-xml-utils
-        requirements.libxslt
-        requirements.jq
-        requirements.youtube-dl
-      ]}
+      --prefix PATH : ${pkgs.lib.makeBinPath (builtins.attrValues requirements)}
   ''
