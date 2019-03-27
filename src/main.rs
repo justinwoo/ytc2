@@ -65,7 +65,7 @@ fn get_targets(page_url: &str, pick_xsl: &str) -> Vec<Target> {
         }
 
         targets.push(Target {
-            title: title_split[1].trim().to_string(),
+            title: title_split[1].trim().to_string().replace("'", ""),
             href: href_split[1].trim().to_string(),
         });
     }
