@@ -1,25 +1,28 @@
 { pkgs ? import <nixpkgs> {} }:
 
 let
-  binary = pkgs.rustPlatform.buildRustPackage rec {
-    name = "ytc2-rs";
-    version = "0.1.0";
-    src = ./.;
-    cargoSha256 = "0jacm96l1gw9nxwavqi1x4669cg6lzy9hr18zjpwlcyb3qkw9z7f";
-  };
-
   requirements = import ./requirements.nix { inherit pkgs; };
-
-in pkgs.runCommand "ytc2" {
+  dynamic-linker = pkgs.stdenv.cc.bintools.dynamicLinker;
+  libPath = pkgs.lib.makeLibraryPath [ pkgs.glibc ];
+in
+pkgs.runCommand "ytc2" {
   name = "ytc2";
+
+  src = ./output;
+
   buildInputs = [
     pkgs.makeWrapper
   ];
 } ''
-    mkdir -p $out/bin
-    install -D -m555 -t $out/bin ${binary}/bin/ytc2
+  mkdir -p $out/bin
+  install -D -m555 -t $out/bin $src/ytc2
 
-    wrapProgram $out/bin/ytc2 \
-      --prefix PICK_XSL : ${binary.src}/pick.xsl \
-      --prefix PATH : ${pkgs.lib.makeBinPath (builtins.attrValues requirements)}
-  ''
+  YTC2=$out/bin/ytc2
+
+  chmod +w $YTC2
+  patchelf --interpreter ${dynamic-linker} --set-rpath ${libPath} $YTC2
+
+  wrapProgram $YTC2 \
+    --prefix PICK_XSL : $src/pick.xsl \
+    --prefix PATH : ${pkgs.lib.makeBinPath (builtins.attrValues requirements)}
+''

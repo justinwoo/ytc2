@@ -1,6 +1,7 @@
 #![warn(rust_2018_idioms, clippy::all)]
 
 use std::env;
+use std::process;
 use std::process::Command;
 
 struct Target {
@@ -10,7 +11,13 @@ struct Target {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let page_url = args.get(1).expect(EXPECT_YOUTUBE_PATH_URL_MESSAGE);
+    let page_url = match args.get(1) {
+        Some(x) => x,
+        None => {
+            eprintln!("{}", EXPECT_YOUTUBE_PATH_URL_MESSAGE);
+            process::exit(1);
+        }
+    };
 
     ensure_sqlite_db();
 
@@ -27,9 +34,10 @@ fn main() {
     println!("done");
 }
 
-const EXPECT_YOUTUBE_PATH_URL_MESSAGE: &str = "
-You must pass a single argument for what page will be used to fetch targets.
-";
+const EXPECT_YOUTUBE_PATH_URL_MESSAGE: &str =
+    "You must pass a single argument for what page will be used to fetch targets.
+
+e.g. ytc2 https://youtube.com/watch?v=myCode";
 
 fn ensure_sqlite_db() {
     run_command(&format!("sqlite3 ~/.ytc2db '{}'", ENSURE_SQLITE_DB_QUERY));
@@ -82,11 +90,14 @@ fn run_command(command: &str) -> String {
         .expect("Failed to launch bash command");
 
     if attempt.status.success() {
-        let result: String = String::from_utf8(attempt.stdout)
-            .unwrap_or_else(|_| panic!("Invalid output from command {}", command));
+        let result: String = String::from_utf8(attempt.stdout).unwrap_or_else(|_| {
+            eprintln!("Invalid output from command {}", command);
+            process::exit(3);
+        });
         result.trim().to_string()
     } else {
-        panic!("Command failed: {}", command)
+        eprintln!("Command failed: {}", command);
+        process::exit(2);
     }
 }
 
