@@ -1,5 +1,6 @@
 #![warn(rust_2018_idioms, clippy::all)]
 
+use sanitize_filename;
 use std::env;
 use std::process;
 use std::process::Command;
@@ -102,6 +103,7 @@ fn run_command(command: &str) -> String {
 }
 
 fn download_target(target: Target) {
+    let title = sanitize_filename::sanitize(target.title.as_str());
     let href = format!("https://www.youtube.com{}", target.href);
     let cmd = &format!(
         r#"sqlite3 ~/.ytc2db "select exists(select 1 from downloads where link = '{}')""#,
@@ -121,6 +123,8 @@ fn download_target(target: Target) {
         .arg("-x")
         .arg("--audio-format")
         .arg("mp3")
+        .arg("-o")
+        .arg(format!("{}.mp3", title))
         .spawn()
         .expect("Failed to launch youtube-dl");
 
@@ -129,7 +133,7 @@ fn download_target(target: Target) {
     if exit.success() {
         run_command(&format!(
             r#"sqlite3 ~/.ytc2db "insert or ignore into downloads (link, title, created) values ('{}', '{}', datetime('now'));""#,
-                             href, target.title));
+                             href, title));
         println!("Downloaded {}", target.title);
     } else {
         println!("Failed to download {} from {}", target.title, target.href)
