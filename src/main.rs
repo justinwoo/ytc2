@@ -11,9 +11,16 @@ struct Target {
 }
 
 fn main() {
+    // limit for how many videos will be downloaded
+    let mut limit: usize = 10;
     let args: Vec<String> = env::args().collect();
     let page_url = match args.get(1) {
-        Some(x) => x,
+        Some(x) => {
+            if let Some(new_limit) = parse_limit(&args) {
+                limit = new_limit;
+            }
+            x
+        }
         None => {
             eprintln!("{}", EXPECT_YOUTUBE_PATH_URL_MESSAGE);
             process::exit(1);
@@ -26,13 +33,33 @@ fn main() {
         .map(|x| x.into_string().unwrap())
         .unwrap_or_else(|| "pick.xsl".to_string());
 
-    let targets = get_targets(page_url, &pick_xsl);
+    let mut targets = get_targets(page_url, &pick_xsl);
+    if targets.len() > limit {
+        println!("Truncating fetched to {}", limit);
+        targets.truncate(limit);
+    }
 
     for target in targets {
         download_target(target);
     }
 
     println!("done");
+}
+
+fn parse_limit(args: &[String]) -> Option<usize> {
+    for i in 1..args.len() {
+        if args[i - 1] == "--limit" {
+            let entry = &args[i];
+            match entry.parse() {
+                Ok(x) => return Some(x),
+                Err(e) => {
+                    eprintln!("`--limit` takes an integer argument, but got something that does not parse: {}", e);
+                    process::exit(1);
+                }
+            }
+        }
+    }
+    None
 }
 
 const EXPECT_YOUTUBE_PATH_URL_MESSAGE: &str =
